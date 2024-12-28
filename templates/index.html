@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube to PDF Converter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center">
+
+  <div class="w-full max-w-md bg-white rounded-lg shadow-md p-6">
+    <h1 class="text-2xl font-semibold text-gray-700 text-center mb-4">YouTube to PDF Converter</h1>
+
+    <form id="convertForm">
+      <label for="video_url" class="block text-gray-600 mb-2">Enter YouTube Video URL:</label>
+      <div class="flex mb-4">
+        <input type="url" id="video_url" name="video_url" class="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mr-2" placeholder="https://www.youtube.com/watch?v=example" required>
+      </div>
+      
+      <label for="resolution" class="block text-gray-600 mb-2">Select Video Resolution:</label>
+      <select id="resolution" name="resolution" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+        <option value="highest">Highest</option>
+        <option value="720p">720p</option>
+        <option value="480p">480p</option>
+        <option value="360p">360p</option>
+      </select>
+
+      <label for="delay" class="block text-gray-600 mb-2">Enter Delay in Seconds:</label>
+      <input type="number" id="delay" name="delay" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" placeholder="1" min="1" required>
+
+      <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg">Convert to PDF</button>
+    </form>
+
+    <div id="statusMessage" class="mt-4 text-center text-gray-600 hidden">
+      <div id="spinner" class="mt-2 w-16 h-16 border-4 border-blue-500 border-t-transparent border-dashed rounded-full animate-spin mx-auto"></div>
+      <span id="processingMessage" class="block mt-4">Processing... Please wait.</span>
+      <span id="completedMessage" class="hidden text-green-600 font-semibold">Conversion complete! Your PDF has been downloaded.</span>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('convertForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const videoUrl = document.getElementById('video_url').value;
+      const resolution = document.getElementById('resolution').value;
+      const delay = document.getElementById('delay').value;
+      const statusMessage = document.getElementById('statusMessage');
+      const spinner = document.getElementById('spinner');
+      const processingMessage = document.getElementById('processingMessage');
+      const completedMessage = document.getElementById('completedMessage');
+
+      // Show the spinner and processing message
+      statusMessage.classList.remove('hidden');
+      spinner.classList.remove('hidden');
+      processingMessage.classList.remove('hidden');
+      completedMessage.classList.add('hidden');
+
+      try {
+        const response = await fetch('/convert', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            video_url: videoUrl,
+            resolution: resolution,
+            delay: delay
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to process video');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'output.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        // Update UI on completion
+        spinner.classList.add('hidden');
+        processingMessage.classList.add('hidden');
+        completedMessage.classList.remove('hidden');
+      } catch (error) {
+        alert('An error occurred: ' + error.message);
+        spinner.classList.add('hidden');
+        processingMessage.classList.add('hidden');
+        statusMessage.classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
